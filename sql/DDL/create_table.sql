@@ -2,6 +2,7 @@
 create table if not exists user
 (
     id              bigint auto_increment comment 'id' primary key,
+    user_id         bigint                                 not null comment '用户id（雪花算法生成）',
     user_account    varchar(256)                           not null comment '账号',
     user_password   varchar(512)                           not null comment '密码',
     user_name       varchar(256)                           null comment '用户昵称',
@@ -17,6 +18,7 @@ create table if not exists user
     create_time     datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
     update_time     datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     is_delete       tinyint      default 0                 not null comment '是否删除',
+    UNIQUE KEY uk_user_id (user_id),
     UNIQUE KEY uk_user_account (user_account),
     INDEX idx_user_name (user_name)
 ) comment '用户' collate = utf8mb4_unicode_ci;
