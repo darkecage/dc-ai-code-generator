@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: dc-ai-code-generator
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.darkecage.dcaicodegenerator.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
