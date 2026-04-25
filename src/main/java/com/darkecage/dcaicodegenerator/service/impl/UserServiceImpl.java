@@ -1,19 +1,26 @@
 package com.darkecage.dcaicodegenerator.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.darkecage.dcaicodegenerator.exception.BusinessException;
 import com.darkecage.dcaicodegenerator.exception.ErrorCode;
 import com.darkecage.dcaicodegenerator.mapper.UserMapper;
+import com.darkecage.dcaicodegenerator.model.dto.user.UserQueryRequest;
 import com.darkecage.dcaicodegenerator.model.entity.User;
 import com.darkecage.dcaicodegenerator.model.enums.UserRoleEnum;
 import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
+import com.darkecage.dcaicodegenerator.model.vo.UserVO;
 import com.darkecage.dcaicodegenerator.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.darkecage.dcaicodegenerator.common.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -143,4 +150,49 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
     }
+
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtil.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream().map(this::getUserVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
+        }
+        Long id = userQueryRequest.getId();
+        Long userId = userQueryRequest.getUserId();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userName = userQueryRequest.getUserName();
+        String userProfile = userQueryRequest.getUserProfile();
+        String userRole = userQueryRequest.getUserRole();
+        String sortField = userQueryRequest.getSortField();
+        String sortOrder = userQueryRequest.getSortOrder();
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("id", id, id != null)
+                .eq("user_id", userId, userId != null)
+                .eq("user_role", userRole, StrUtil.isNotBlank(userRole))
+                .like("user_account", userAccount, StrUtil.isNotBlank(userAccount))
+                .like("user_name", userName, StrUtil.isNotBlank(userName))
+                .like("user_profile", userProfile, StrUtil.isNotBlank(userProfile));
+        if (StrUtil.isNotBlank(sortField)) {
+            queryWrapper.orderBy(sortField, "ascend".equals(sortOrder));
+        }
+        return queryWrapper;
+    }
+
 }

@@ -1,9 +1,14 @@
 package com.darkecage.dcaicodegenerator.service;
 
+import com.darkecage.dcaicodegenerator.model.dto.user.UserQueryRequest;
 import com.darkecage.dcaicodegenerator.model.entity.User;
 import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
+import com.darkecage.dcaicodegenerator.model.vo.UserVO;
+import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.List;
 
 /**
  * 用户 服务层。
@@ -57,4 +62,9 @@ public interface UserService extends IService<User> {
      */
     boolean userLogout(HttpServletRequest request);
 
+    UserVO getUserVO(User user);
+
+    List<UserVO> getUserVOList(List<User> userList);
+
+    QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest);
 }
