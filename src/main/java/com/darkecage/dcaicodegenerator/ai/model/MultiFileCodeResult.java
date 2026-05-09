@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Description("生成多个代码文件的结果")
 @Data
-public class MultiFileCodeResult {
+public class MultiFileCodeResult implements CodeParseResult {
 
     @Description("HTML代码")
     private String htmlCode;
