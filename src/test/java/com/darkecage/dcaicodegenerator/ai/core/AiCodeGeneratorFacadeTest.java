@@ -22,6 +22,8 @@ class AiCodeGeneratorFacadeTest {
     void generateAndSaveCode() {
         File file = aiCodeGeneratorFacade.generateAndSaveCode("任务记录网站", CodeGenTypeEnum.MULTI_FILE);
         Assertions.assertNotNull(file);
+        file = aiCodeGeneratorFacade.generateAndSaveCode("美女网站", CodeGenTypeEnum.HTML);
+        Assertions.assertNotNull(file);
     }
 
     @Test
@@ -54,5 +56,37 @@ class AiCodeGeneratorFacadeTest {
     void generateCodeStreamAndSave_nullType() {
         Assertions.assertThrows(BusinessException.class,
                 () -> aiCodeGeneratorFacade.generateCodeStreamAndSave("任务记录网站", null));
+    }
+
+    @Test
+    void generateAndSaveCodeStream_html() {
+        Flux<String> flux = aiCodeGeneratorFacade.generateAndSaveCodeStream("简单计算器页面", CodeGenTypeEnum.HTML);
+        AtomicBoolean hasContent = new AtomicBoolean(false);
+        StepVerifier.create(flux)
+                .thenConsumeWhile(chunk -> {
+                    hasContent.set(true);
+                    return true;
+                })
+                .verifyComplete();
+        Assertions.assertTrue(hasContent.get(), "流式响应应包含内容");
+    }
+
+    @Test
+    void generateAndSaveCodeStream_multiFile() {
+        Flux<String> flux = aiCodeGeneratorFacade.generateAndSaveCodeStream("待办事项应用", CodeGenTypeEnum.MULTI_FILE);
+        AtomicBoolean hasContent = new AtomicBoolean(false);
+        StepVerifier.create(flux)
+                .thenConsumeWhile(chunk -> {
+                    hasContent.set(true);
+                    return true;
+                })
+                .verifyComplete();
+        Assertions.assertTrue(hasContent.get(), "流式响应应包含内容");
+    }
+
+    @Test
+    void generateAndSaveCodeStream_nullType() {
+        Assertions.assertThrows(BusinessException.class,
+                () -> aiCodeGeneratorFacade.generateAndSaveCodeStream("测试", null));
     }
 }
