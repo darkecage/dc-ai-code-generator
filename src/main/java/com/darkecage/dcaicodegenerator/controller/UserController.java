@@ -4,13 +4,13 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.darkecage.dcaicodegenerator.annotation.AuthCheck;
 import com.darkecage.dcaicodegenerator.common.BaseResponse;
-import com.darkecage.dcaicodegenerator.common.DeleteRequest;
 import com.darkecage.dcaicodegenerator.common.ResultUtils;
 import com.darkecage.dcaicodegenerator.common.constant.UserConstant;
 import com.darkecage.dcaicodegenerator.exception.BusinessException;
 import com.darkecage.dcaicodegenerator.exception.ErrorCode;
 import com.darkecage.dcaicodegenerator.exception.ThrowUtils;
 import com.darkecage.dcaicodegenerator.model.dto.user.*;
+import com.darkecage.dcaicodegenerator.model.dto.user.UserDeleteRequest;
 import com.darkecage.dcaicodegenerator.model.entity.User;
 import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
 import com.darkecage.dcaicodegenerator.model.vo.UserVO;
@@ -126,13 +126,17 @@ public class UserController {
      */
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
-        if (deleteRequest == null || deleteRequest.getUserId() <= 0) {
+    public BaseResponse<Boolean> deleteUser(@RequestBody UserDeleteRequest userDeleteRequest,
+                                            HttpServletRequest request) {
+        if (userDeleteRequest == null || userDeleteRequest.getUserId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        user.setUserId(deleteRequest.getUserId());
-        boolean b = userService.removeById(user);
+        // 校验：不能删除当前登录的用户（防止管理员误删除自身账号）
+        LoginUserVO loginUser = userService.getLoginUser(request);
+        if (loginUser.getUserId().equals(userDeleteRequest.getUserId())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "不能删除当前登录的用户");
+        }
+        boolean b = userService.remove(QueryWrapper.create().eq("user_id", userDeleteRequest.getUserId()));
         return ResultUtils.success(b);
     }
 
