@@ -33,3 +33,9 @@ langchain4j:
       log-requests: true
       log-responses: true
       max-tokens: 8192
+# 应用业务配置
+app:
+  app-name-default-length: 12
+  app-name-max-length: 20
+  user-page-size-max: 20
+  featured-priority-threshold: 99
