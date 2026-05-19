@@ -3,15 +3,18 @@ package com.darkecage.dcaicodegenerator.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.darkecage.dcaicodegenerator.ai.core.AiCodeGeneratorFacade;
 import com.darkecage.dcaicodegenerator.config.AppConfig;
 import com.darkecage.dcaicodegenerator.exception.BusinessException;
 import com.darkecage.dcaicodegenerator.exception.ErrorCode;
+import com.darkecage.dcaicodegenerator.exception.ThrowUtils;
 import com.darkecage.dcaicodegenerator.mapper.AppMapper;
 import com.darkecage.dcaicodegenerator.model.dto.app.AppQueryRequest;
 import com.darkecage.dcaicodegenerator.model.entity.App;
 import com.darkecage.dcaicodegenerator.model.entity.User;
 import com.darkecage.dcaicodegenerator.model.enums.CodeGenTypeEnum;
 import com.darkecage.dcaicodegenerator.model.vo.AppVO;
+import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
 import com.darkecage.dcaicodegenerator.model.vo.UserVO;
 import com.darkecage.dcaicodegenerator.service.AppService;
 import com.darkecage.dcaicodegenerator.service.UserService;
@@ -19,6 +22,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,6 +44,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
     @Override
     public void validApp(App app, boolean add) {
@@ -133,4 +140,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             return appVO;
         }).collect(Collectors.toList());
     }
+
+    @Override
+    public Flux<String> chatToGenCode(Long appId, String message, LoginUserVO loginUser) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
+        // 2. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 3. 验证用户是否有权限访问该应用，仅本人可以生成代码
+        if (!app.getUserId().equals(loginUser.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+        }
+        // 4. 获取应用的代码生成类型
+        String codeGenTypeStr = app.getCodeGenType();
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+        if (codeGenTypeEnum == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
+        }
+        // 5. 调用 AI 生成代码
+        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+    }
+
 }

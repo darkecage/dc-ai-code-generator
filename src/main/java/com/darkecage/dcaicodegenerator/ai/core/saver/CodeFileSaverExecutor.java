@@ -25,14 +25,15 @@ public class CodeFileSaverExecutor {
      *
      * @param codeResult  代码结果对象
      * @param codeGenType 代码生成类型
+     * @param appId       应用ID，用于构建唯一目录名
      * @return 保存的目录
      */
     @SuppressWarnings("unchecked")
-    public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType) {
+    public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType, Long appId) {
         CodeFileSaverTemplate saver = SAVER_MAP.get(codeGenType);
         if (saver == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType.name());
         }
-        return saver.saveCode(codeResult);
+        return saver.saveCode(codeResult, appId);
     }
 }

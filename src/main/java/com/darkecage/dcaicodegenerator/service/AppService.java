@@ -2,9 +2,12 @@ package com.darkecage.dcaicodegenerator.service;
 
 import com.darkecage.dcaicodegenerator.model.dto.app.AppQueryRequest;
 import com.darkecage.dcaicodegenerator.model.entity.App;
+import com.darkecage.dcaicodegenerator.model.entity.User;
 import com.darkecage.dcaicodegenerator.model.vo.AppVO;
+import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -46,4 +49,7 @@ public interface AppService extends IService<App> {
      * @return 应用视图对象列表
      */
     List<AppVO> getAppVOList(List<App> appList);
+
+
+    Flux<String> chatToGenCode(Long appId, String message, LoginUserVO loginUser);
 }
