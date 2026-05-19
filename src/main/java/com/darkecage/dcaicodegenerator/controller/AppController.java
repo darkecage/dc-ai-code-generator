@@ -22,15 +22,20 @@ import com.darkecage.dcaicodegenerator.service.AppService;
 import com.darkecage.dcaicodegenerator.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 应用 控制层。
@@ -50,6 +55,9 @@ public class AppController {
 
     @Autowired
     private AppConfig appConfig;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     // region 用户端接口
 
@@ -254,16 +262,57 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> chatToGenCode(@RequestParam Long appId,
-                                      @RequestParam String message,
-                                      HttpServletRequest request) {
+    public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
+                                                       @RequestParam String message,
+                                                       HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
         // 获取当前登录用户
         LoginUserVO loginUser = userService.getLoginUser(request);
-        // 调用服务生成代码（流式）
-        return appService.chatToGenCode(appId, message, loginUser);
+        // 调用服务获取原始字符串流，在 Controller 层封装为 SSE 事件
+        return buildSseFlux(appService.chatToGenCode(appId, message, loginUser));
+    }
+
+    /**
+     * 将原始字符串流封装为 SSE 事件流。
+     * data 字段使用 JSON 格式，避免 SSE 规范中前导空格被浏览器剥离的问题。
+     * 正常结束时追加 done 事件，异常时发送 error 事件，两者互斥。
+     */
+    private Flux<ServerSentEvent<String>> buildSseFlux(Flux<String> source) {
+        Flux<ServerSentEvent<String>> dataEvents = source.map(chunk ->
+                ServerSentEvent.<String>builder()
+                        .event("message")
+                        .data(toJsonContent(chunk))
+                        .build()
+        );
+        Mono<ServerSentEvent<String>> doneEvent = Mono.just(
+                ServerSentEvent.<String>builder()
+                        .event("done")
+                        .data("{\"content\":\"\"}")
+                        .build()
+        );
+        return dataEvents
+                .concatWith(doneEvent)
+                .onErrorResume(e -> {
+                    log.error("SSE 流异常中断", e);
+                    return Mono.just(ServerSentEvent.<String>builder()
+                            .event("error")
+                            .data(toJsonContent("生成失败：" + e.getMessage()))
+                            .build());
+                });
+    }
+
+    /**
+     * 将内容序列化为 JSON 字符串 {"content":"..."}，Jackson 自动处理换行符和特殊字符转义。
+     */
+    private String toJsonContent(String content) {
+        try {
+            return objectMapper.writeValueAsString(Map.of("content", content));
+        } catch (Exception e) {
+            log.error("SSE data JSON 序列化失败", e);
+            return "{\"content\":\"\"}";
+        }
     }
 
 }
