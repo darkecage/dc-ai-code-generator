@@ -5,12 +5,14 @@ import com.darkecage.dcaicodegenerator.ai.model.MultiFileCodeResult;
 import com.darkecage.dcaicodegenerator.exception.BusinessException;
 import com.darkecage.dcaicodegenerator.exception.ErrorCode;
 import com.darkecage.dcaicodegenerator.model.enums.CodeGenTypeEnum;
+import org.springframework.stereotype.Component;
 
 /**
  * 多文件代码保存器
  *
- * @author yupi
+ * @author kaiqi.hu
  */
+@Component
 public class MultiFileCodeFileSaverTemplate extends CodeFileSaverTemplate<MultiFileCodeResult> {
 
     @Override

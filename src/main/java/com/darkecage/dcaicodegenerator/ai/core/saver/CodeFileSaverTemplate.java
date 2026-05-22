@@ -2,9 +2,11 @@ package com.darkecage.dcaicodegenerator.ai.core.saver;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
+import com.darkecage.dcaicodegenerator.config.AppConfig;
 import com.darkecage.dcaicodegenerator.exception.BusinessException;
 import com.darkecage.dcaicodegenerator.exception.ErrorCode;
 import com.darkecage.dcaicodegenerator.model.enums.CodeGenTypeEnum;
+import jakarta.annotation.Resource;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -16,8 +18,8 @@ import java.nio.charset.StandardCharsets;
  */
 public abstract class CodeFileSaverTemplate<T> {
 
-    // 文件保存根目录
-    protected static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
+    @Resource
+    private AppConfig appConfig;
 
     /**
      * 模板方法：保存代码的标准流程
@@ -57,7 +59,7 @@ public abstract class CodeFileSaverTemplate<T> {
     protected final String buildUniqueDir(Long appId) {
         String codeType = getCodeType().getValue();
         String uniqueDirName = StrUtil.format("{}_{}", codeType, appId);
-        String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
+        String dirPath = appConfig.getCodeOutputRootDir() + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
         return dirPath;
     }

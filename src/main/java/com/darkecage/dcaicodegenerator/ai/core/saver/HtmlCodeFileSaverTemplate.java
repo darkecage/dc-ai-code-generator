@@ -5,12 +5,14 @@ import com.darkecage.dcaicodegenerator.ai.model.HtmlCodeResult;
 import com.darkecage.dcaicodegenerator.exception.BusinessException;
 import com.darkecage.dcaicodegenerator.exception.ErrorCode;
 import com.darkecage.dcaicodegenerator.model.enums.CodeGenTypeEnum;
+import org.springframework.stereotype.Component;
 
 /**
  * HTML代码文件保存器
  *
- * @author yupi
+ * @author kaiqi.hu
  */
+@Component
 public class HtmlCodeFileSaverTemplate extends CodeFileSaverTemplate<HtmlCodeResult> {
 
     @Override

@@ -33,4 +33,19 @@ public class AppConfig {
      * 精选应用的 priority 阈值（>= 该值视为精选）
      */
     private int featuredPriorityThreshold = 99;
+
+    /**
+     * 代码生成输出根目录
+     */
+    private String codeOutputRootDir = System.getProperty("user.dir") + "/tmp/code_output";
+
+    /**
+     * 代码部署根目录
+     */
+    private String codeDeployRootDir = System.getProperty("user.dir") + "/tmp/code_deploy";
+
+    /**
+     * 代码部署域名
+     */
+    private String codeDeployHost = "http://localhost";
 }

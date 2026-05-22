@@ -24,6 +24,9 @@ public class AiCodeGeneratorFacade {
     @Resource
     private AiCodeGeneratorService aiCodeGeneratorService;
 
+    @Resource
+    private CodeFileSaverExecutor codeFileSaverExecutor;
+
     /**
      * 生成 HTML 模式的代码并保存
      *
@@ -125,11 +128,11 @@ public class AiCodeGeneratorFacade {
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
-                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML, appId);
+                yield codeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML, appId);
             }
             case MULTI_FILE -> {
                 MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE, appId);
+                yield codeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE, appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -186,7 +189,7 @@ public class AiCodeGeneratorFacade {
                 // 使用执行器解析代码
                 Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
                 // 使用执行器保存代码
-                File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
+                File savedDir = codeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
                 log.info("保存成功，路径为：{}", savedDir.getAbsolutePath());
             } catch (Exception e) {
                 log.error("保存失败: {}", e.getMessage());

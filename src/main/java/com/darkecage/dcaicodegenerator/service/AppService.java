@@ -2,7 +2,6 @@ package com.darkecage.dcaicodegenerator.service;
 
 import com.darkecage.dcaicodegenerator.model.dto.app.AppQueryRequest;
 import com.darkecage.dcaicodegenerator.model.entity.App;
-import com.darkecage.dcaicodegenerator.model.entity.User;
 import com.darkecage.dcaicodegenerator.model.vo.AppVO;
 import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -52,4 +51,6 @@ public interface AppService extends IService<App> {
 
 
     Flux<String> chatToGenCode(Long appId, String message, LoginUserVO loginUser);
+
+    String deployApp(Long appId, Long loginUserId);
 }

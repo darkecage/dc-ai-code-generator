@@ -39,3 +39,6 @@ app:
   app-name-max-length: 20
   user-page-size-max: 20
   featured-priority-threshold: 99
+  code-output-root-dir: ${user.dir}/tmp/code_output
+  code-deploy-root-dir: ${user.dir}/tmp/code_deploy
+  code-deploy-host: http://localhost
