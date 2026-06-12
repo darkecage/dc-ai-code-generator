@@ -2,7 +2,9 @@ package com.darkecage.dcaicodegenerator.ai.core;
 
 import com.darkecage.dcaicodegenerator.ai.model.HtmlCodeResult;
 import com.darkecage.dcaicodegenerator.ai.model.MultiFileCodeResult;
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 public interface AiCodeGeneratorService {
@@ -10,7 +12,7 @@ public interface AiCodeGeneratorService {
     String generateCode(String userMessage);
 
     @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
-    HtmlCodeResult generateHtmlCode(String userMessage);
+    HtmlCodeResult generateHtmlCode(@MemoryId int memoryId, @UserMessage  String userMessage);
 
     @SystemMessage(fromResource = "prompt/codegen-multi-system-prompt.txt")
     MultiFileCodeResult generateMultiFileCode(String userMessage);

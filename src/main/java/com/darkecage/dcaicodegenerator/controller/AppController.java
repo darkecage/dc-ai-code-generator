@@ -122,8 +122,7 @@ public class AppController {
         // 校验所有权
         LoginUserVO loginUser = userService.getLoginUser(request);
         ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getUserId()), ErrorCode.NO_AUTH_ERROR, "无权删除他人的应用");
-        boolean result = appService.removeById(deleteRequest.getId());
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        appService.deleteAppById(deleteRequest.getId());
         return ResultUtils.success(true);
     }
 
@@ -195,8 +194,7 @@ public class AppController {
         // 查询应用是否存在
         App app = appService.getById(deleteRequest.getId());
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        boolean result = appService.removeById(deleteRequest.getId());
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        appService.deleteAppById(deleteRequest.getId());
         return ResultUtils.success(true);
     }
 

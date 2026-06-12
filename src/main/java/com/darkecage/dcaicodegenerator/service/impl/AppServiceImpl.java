@@ -12,18 +12,23 @@ import com.darkecage.dcaicodegenerator.exception.ErrorCode;
 import com.darkecage.dcaicodegenerator.exception.ThrowUtils;
 import com.darkecage.dcaicodegenerator.mapper.AppMapper;
 import com.darkecage.dcaicodegenerator.model.dto.app.AppQueryRequest;
+import com.darkecage.dcaicodegenerator.model.dto.chatHistory.ChatHistoryAddRequest;
 import com.darkecage.dcaicodegenerator.model.entity.App;
 import com.darkecage.dcaicodegenerator.model.entity.User;
+import com.darkecage.dcaicodegenerator.model.enums.ChatHistoryMessageTypeEnum;
 import com.darkecage.dcaicodegenerator.model.enums.CodeGenTypeEnum;
 import com.darkecage.dcaicodegenerator.model.vo.AppVO;
 import com.darkecage.dcaicodegenerator.model.vo.LoginUserVO;
 import com.darkecage.dcaicodegenerator.model.vo.UserVO;
 import com.darkecage.dcaicodegenerator.service.AppService;
+import com.darkecage.dcaicodegenerator.service.ChatHistoryService;
 import com.darkecage.dcaicodegenerator.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -41,6 +46,7 @@ import java.util.stream.Collectors;
  * @author kaiqi.hu
  */
 @Service
+@Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     @Autowired
@@ -51,6 +57,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Autowired
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+    @Autowired
+    private ChatHistoryService chatHistoryService;
 
     @Override
     public void validApp(App app, boolean add) {
@@ -163,8 +172,56 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
-        // 5. 调用 AI 生成代码
-        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
+        // 5. 保存用户消息，拿到 id 用于关联 AI 消息
+        ChatHistoryAddRequest userMsgReq = new ChatHistoryAddRequest();
+        userMsgReq.setAppId(appId);
+        userMsgReq.setMessage(message);
+        userMsgReq.setMessageType(ChatHistoryMessageTypeEnum.USER.getValue());
+        Long userMsgId = chatHistoryService.saveChatHistory(userMsgReq, loginUser.getUserId());
+        // 6. 调用 AI 生成流，收集完整回复后保存 AI 消息
+        StringBuilder aiReply = new StringBuilder();
+        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId)
+                .doOnNext(aiReply::append)
+                .doOnComplete(() ->
+                        saveAiChatHistory(appId, userMsgId, loginUser.getUserId(), aiReply.toString())
+                )
+                .doOnError(e -> {
+                    log.error("AI 代码生成流发生错误, appId={}, userMsgId={}", appId, userMsgId, e);
+                    String errorMsg = !aiReply.isEmpty()
+                            ? aiReply + "\n\n[生成失败：" + e.getMessage() + "]"
+                            : "[生成失败：" + e.getMessage() + "]";
+                    saveAiChatHistory(appId, userMsgId, loginUser.getUserId(), errorMsg);
+                })
+                .doOnCancel(() -> {
+                    log.warn("AI 代码生成流被取消, appId={}, userMsgId={}", appId, userMsgId);
+                    String cancelMsg = !aiReply.isEmpty() ? aiReply + "\n\n[用户取消]" : "[用户取消]";
+                    saveAiChatHistory(appId, userMsgId, loginUser.getUserId(), cancelMsg);
+                });
+    }
+
+    private void saveAiChatHistory(Long appId, Long parentId, Long userId, String message) {
+        try {
+            ChatHistoryAddRequest aiMsgReq = new ChatHistoryAddRequest();
+            aiMsgReq.setAppId(appId);
+            aiMsgReq.setMessage(message);
+            aiMsgReq.setMessageType(ChatHistoryMessageTypeEnum.AI.getValue());
+            aiMsgReq.setParentId(parentId);
+            chatHistoryService.saveChatHistory(aiMsgReq, userId);
+        } catch (Exception e) {
+            log.error("保存 AI 对话历史失败, appId={}", appId, e);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAppById(Long appId) {
+        boolean result = this.removeById(appId);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        try {
+            chatHistoryService.deleteByAppId(appId);
+        } catch (Exception e) {
+            log.warn("删除应用[{}]的聊天历史失败，不影响应用删除流程", appId, e);
+        }
     }
 
     @Override

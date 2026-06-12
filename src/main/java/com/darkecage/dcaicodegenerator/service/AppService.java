@@ -50,6 +50,13 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
 
+    /**
+     * 删除应用及其关联的对话历史（聊天历史删除失败不影响应用删除）
+     *
+     * @param appId 应用 id
+     */
+    void deleteAppById(Long appId);
+
     Flux<String> chatToGenCode(Long appId, String message, LoginUserVO loginUser);
 
     String deployApp(Long appId, Long loginUserId);
